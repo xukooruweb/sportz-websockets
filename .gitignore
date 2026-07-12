@@ -33,6 +33,7 @@ Icon?
 
 # nodejs npm modules
 /node_modules
+.env
 
 # node-cluster
 /pids
