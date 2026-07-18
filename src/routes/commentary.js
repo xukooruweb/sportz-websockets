@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "../db/db.js";
-import { commentary } from "../db/schema.js";
+import { commentary, matches } from "../db/schema.js";
 import { matchIdParamSchema } from "../validation/matches.js";
 import {
   createCommentarySchema,
@@ -71,6 +71,16 @@ commentaryRouter.post("/", async (req, res) => {
   }
 
   try {
+    const matchExists = await db
+      .select({ id: matches.id })
+      .from(matches)
+      .where(eq(matches.id, paramsResult.data.id))
+      .limit(1);
+
+    if (matchExists.length === 0) {
+      return res.status(404).json({ error: "Match not found" });
+    }
+
     const [createdCommentary] = await db
       .insert(commentary)
       .values({
@@ -81,6 +91,18 @@ commentaryRouter.post("/", async (req, res) => {
 
     res.status(201).json({ data: createdCommentary });
   } catch (error) {
+    const isForeignKeyFailure =
+      error &&
+      typeof error === "object" &&
+      (error.code === "23503" ||
+        String(error.message || "")
+          .toLowerCase()
+          .includes("foreign key"));
+
+    if (isForeignKeyFailure) {
+      return res.status(404).json({ error: "Match not found" });
+    }
+
     return res.status(500).json({
       error: "Failed to create commentary",
       details: JSON.parse(JSON.stringify(error)),
