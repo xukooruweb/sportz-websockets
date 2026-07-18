@@ -1,4 +1,5 @@
 import { WebSocket, WebSocketServer } from "ws";
+import { wsArcjet } from "../arcjet.js";
 
 function sendJson(socket, payload) {
   if (socket.readyState !== WebSocket.OPEN) return;
@@ -21,7 +22,26 @@ export function attacheWebSocketServer(server) {
     maxPayload: 1024 * 1024, // 1MB
   });
 
-  wss.on("connection", (socket) => {
+  wss.on("connection", async (socket, req) => {
+    if (wsArcjet) {
+      try {
+        const decision = await wsArcjet.protect(req);
+
+        if (decision.isDenied()) {
+          if (decision.reason.isRateLimit()) {
+            socket.close(1013, "Too many requests.");
+            return;
+          }
+          socket.close(1008, "Policy Violation");
+          return;
+        }
+      } catch (error) {
+        console.error("WS Connection error:", error);
+        socket.close(1011, "Server security error");
+        return;
+      }
+    }
+
     socket.isAlive = true;
     socket.on("pong", () => {
       socket.isAlive = true;
@@ -39,8 +59,8 @@ export function attacheWebSocketServer(server) {
 
   const interval = setInterval(() => {
     wss.clients.forEach((socket) => {
-      if (ws.isAlive === false) return socket.terminate();
-      ws.isAlive = false;
+      if (socket.isAlive === false) return socket.terminate();
+      socket.isAlive = false;
       socket.ping();
     });
   }, 30000);
