@@ -24,8 +24,9 @@ app.use(securityMiddleware());
 app.use("/matches", matchesRouter);
 app.use("/matches/:id/commentary", commentaryRouter);
 
-const { broadcastMatchCreated } = attacheWebSocketServer(server);
+const { broadcastMatchCreated, broadcastCommentary } = attacheWebSocketServer(server);
 app.locals.broadcastMatchCreated = broadcastMatchCreated;
+app.locals.broadcastCommentary = broadcastCommentary;
 
 server.listen(PORT, HOST, () => {
   const baseUrl =
