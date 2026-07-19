@@ -89,6 +89,10 @@ commentaryRouter.post("/", async (req, res) => {
       })
       .returning();
 
+      if (req.app.locals.broadcastCommentary) {
+        req.app.locals.broadcastCommentary(paramsResult.data.id, createdCommentary);
+      }
+
     res.status(201).json({ data: createdCommentary });
   } catch (error) {
     const isForeignKeyFailure =
